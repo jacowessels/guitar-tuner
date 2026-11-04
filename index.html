@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>String Tuner</title>
+  <meta name="description" content="Free tuner for guitar, ukulele and banjo with open tunings and chord charts.">
+  <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Apply saved theme before first paint to avoid a flash.
+    try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      String Tuner
+    </h1>
+    <div class="topbar-actions">
+      <button id="themeBtn" class="icon-btn" type="button" aria-label="Theme: auto" title="Theme"></button>
+      <button id="settingsBtn" class="icon-btn" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section id="settings" class="panel settings" hidden>
+      <label class="field">
+        <span>Reference pitch (A4)</span>
+        <span class="a4-row">
+          <input id="a4" type="range" min="430" max="450" step="1" value="440">
+          <output id="a4Val">440 Hz</output>
+          <button id="a4Reset" type="button" class="link-btn">Reset</button>
+        </span>
+      </label>
+      <label class="field">
+        <span>In-tune tolerance</span>
+        <select id="tolerance">
+          <option value="3">±3 cents (strict)</option>
+          <option value="5" selected>±5 cents</option>
+          <option value="10">±10 cents (relaxed)</option>
+        </select>
+      </label>
+    </section>
+
+    <nav class="instruments" id="instruments" role="tablist" aria-label="Instrument"></nav>
+
+    <label class="tuning-select">
+      <span class="sr-only">Tuning</span>
+      <select id="tuning"></select>
+    </label>
+
+    <section class="panel tuner" id="tuner" aria-live="polite">
+      <div class="note-wrap">
+        <div class="note" id="note">–</div>
+        <div class="sub" id="hearing">Tap start, then play a string</div>
+      </div>
+
+      <svg class="gauge" id="gauge" viewBox="0 0 320 190" aria-hidden="true">
+        <g id="ticks"></g>
+        <path id="zone" class="zone"/>
+        <text x="40" y="182" class="gauge-lbl" text-anchor="middle">♭ flat</text>
+        <text x="280" y="182" class="gauge-lbl" text-anchor="middle">sharp ♯</text>
+        <g id="needle" class="needle">
+          <line x1="160" y1="170" x2="160" y2="36"/>
+          <circle cx="160" cy="170" r="9"/>
+        </g>
+      </svg>
+
+      <div class="readout">
+        <span id="cents" class="cents">0¢</span>
+        <span id="hint" class="hint">&nbsp;</span>
+        <span id="freq" class="freq">&nbsp;</span>
+      </div>
+
+      <button id="startBtn" class="start-btn" type="button">Start tuner</button>
+      <p id="micError" class="error" hidden></p>
+    </section>
+
+    <section class="strings-wrap">
+      <div class="strings-head">
+        <h2>Strings</h2>
+        <div class="strings-modes">
+          <button id="autoBtn" type="button" class="chip active" aria-pressed="true">Auto detect</button>
+          <button id="toneBtn" type="button" class="chip" aria-pressed="false" title="Tap a string to hear its note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Play tone
+          </button>
+        </div>
+      </div>
+      <div class="strings" id="strings"></div>
+      <p class="small muted" id="stringsHelp">Tap a string to lock the tuner to it. Tap again to go back to auto detect.</p>
+    </section>
+
+    <section class="chords-section">
+      <div class="chords-head">
+        <div>
+          <h2 id="chordsTitle">Chords</h2>
+          <p class="muted small" id="tuningDesc"></p>
+        </div>
+        <div class="filters" id="filters" role="group" aria-label="Chord type">
+          <button type="button" class="chip active" data-cat="all">All</button>
+          <button type="button" class="chip" data-cat="major">Major</button>
+          <button type="button" class="chip" data-cat="minor">Minor</button>
+          <button type="button" class="chip" data-cat="seventh">7ths</button>
+          <button type="button" class="chip" data-cat="other">Other</button>
+        </div>
+      </div>
+      <p class="muted small legend">● fret &nbsp; ○ open string &nbsp; ✕ don't play &nbsp; · Tap a chord to hear it.</p>
+      <div class="chord-grid" id="chords"></div>
+    </section>
+  </main>
+
+  <footer class="footer muted small">
+    Works offline once loaded. Add it to your home screen to use it like an app.
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
